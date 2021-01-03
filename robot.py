@@ -1,9 +1,5 @@
 #Robot violet
 
-# test commit by F
-# test commit by M
-# test commit by H
-
 from sr.robot import *
 from math import *
 R = Robot()
@@ -16,12 +12,11 @@ class Nav():
     targetBearing=0
     strongestSignal=0
     targetName=''
-    targetOwner=''
     rightM=0.0
     leftM=0.0
     x = 0
+    y = 0
     couleur = ""
-    opponentZone= abs(R.zone-1)
 
     def forgetPreviousTarget(self):
         self.targetBearing=0
@@ -56,6 +51,9 @@ class Nav():
     def avoidPillar(self):
         print('avoiding a pillar')
         if self.couleur == "violet" :
+            if self.x == 1 and self.y == 0 :
+                R.sleep(10)
+                self.y = self.y + 1
             if self.x > 5:
                 self.x = 1
             if self.x == 0 or self.x == 1 or self.x == 5:
@@ -88,6 +86,9 @@ class Nav():
                 self.stop()
             self.x = self.x + 1
         if self.couleur == "jaune" :
+            if self.x == 1 and self.y == 0 :
+                R.sleep(10)
+                self.y = self.y + 1
             if self.x > 5:
                 self.x = 1
             if self.x == 2 or self.x == 3 or self.x == 4:
@@ -120,14 +121,6 @@ class Nav():
                 self.stop()
             self.x = self.x + 1
 
-    def waitUntilPillarIsClaimed(self):
-        cd=0
-        if self.targetName=='BE':
-            while (not self.targetOwner == self.opponentZone) or cd<10:
-                cd=1
-                R.sleep(1)
-
-
     def detect(self):
         transmitters = R.radio.sweep()
         for tx in transmitters:
@@ -135,7 +128,6 @@ class Nav():
                 self.strongestSignal = tx.signal_strength
                 self.targetBearing = tx.bearing
                 self.targetName = tx.target_info.station_code
-                self.targetOwner = tx.target_info.owned_by
             R.sleep(0.1)
         return(transmitters)
 
@@ -154,15 +146,6 @@ class Nav():
         for tx in transmitters:
             if tx.target_info.station_code == name:
                 self.strongestSignal = tx.signal_strength
-            R.sleep(0.1)
-        return(self.strongestSignal)
-
-    def updateOwner(self, name=None):
-        if not name: name = self.targetName
-        transmitters = R.radio.sweep()
-        for tx in transmitters:
-            if tx.target_info.station_code == name:
-                self.targetOwner = tx.target_info.owned_by
             R.sleep(0.1)
         return(self.strongestSignal)
 
@@ -207,7 +190,6 @@ while True:
     elif nav.strongestSignal == 0:
         nav.wander()
     else:
-        nav.waitUntilPillarIsClaimed()
         nav.goToClosest()
         nav.claimTerritory()
 
