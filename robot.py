@@ -123,8 +123,8 @@ class Nav():
     def waitUntilPillarIsClaimed(self):
         cd=0
         if self.targetName=='BE':
-            while (not self.targetOwner == self.opponentZone) or cd<10:
-                cd=1
+            while (not self.targetOwner == self.opponentZone) and cd<10:
+                cd+=1
                 R.sleep(1)
 
 
