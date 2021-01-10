@@ -9,8 +9,9 @@ logging.basicConfig(level=logging.INFO)
 class Monrobot(Robot):
     targetBearing=0
     strongestSignal=0
-    targetName=''
+    pillarName=''
     targetOwner=''
+    targetDistance=0
     positionThreshold= 0.1
     rotationThreshold = 12
     upperPillars=['PN', 'EY', 'PO', 'YL']
@@ -112,7 +113,7 @@ class Monrobot(Robot):
             if tx.signal_strength > self.strongestSignal and not tx.target_info.owned_by == self.zone:
                 self.strongestSignal = tx.signal_strength
                 self.targetBearing = tx.bearing
-                self.targetName = tx.target_info.station_code
+                self.pillarName = tx.target_info.station_code
                 self.targetOwner = tx.target_info.owned_by
             self.sleep(0.1)
 
@@ -129,7 +130,7 @@ class Monrobot(Robot):
         if len(self.transmitters)>0 :
             logging.info(f"Signal le plus fort actuellement : {self.transmitters[0].target_info.station_code} : {self.transmitters[0].signal_strength}")
 
-    def setMotors(self,l,r):
+    def setMotors(self,r,l):
         self.leftMotor.power = l
         self.rightMotor.power = r
 
@@ -137,19 +138,19 @@ class Monrobot(Robot):
 
 
     def updateTarget(self, name=None):
-        if not name: name = self.targetName
+        if not name: name = self.pillarName
         transmitters = R.radio.sweep()
         for tx in transmitters:
             if tx.target_info.station_code == name:
                 self.strongestSignal = tx.signal_strength
         R.sleep(0.1)
         
-        self.targetBearing = -(self.theta - atan2(self.pillars.self.targetName[1]/self.pillars.self.targetName[0]))
-        self.targetDistance =  sqrt((self.targets.self.targetName[0]-self.x)**2 - (self.targets.self.targetName[1]-self.y)**2)
+        self.targetBearing = -(self.theta - atan2(self.pillars.self.pillarName[1]/self.pillars.self.pillarName[0]))
+        self.targetDistance =  sqrt((self.targets[self.pillarName][0]-self.x)**2 - (self.targets[self.pillarName][1]-self.y)**2)
 
     def arrived(self):
         if self.targetDistance<0.50 :
-            if self.x>self.targetx-self.positionThreshold and self.Y>self.targety-self.threshold and self.x<self.targetx+self.threshold and self.Y<self.targety+self.threshold:
+            if self.x>self.targets.self.pillarName[0]-self.positionThreshold and self.Y>self.targets.self.pillarName[1]-self.threshold and self.x<self.targets.self.pillarName[0]+self.threshold and self.Y<self.targets.self.pillarName[1]+self.threshold:
                 return True
         return False  
     def orriented(self):
@@ -175,9 +176,9 @@ class Monrobot(Robot):
             if self.tsAV :
                 return
             elif self.targetBearing > 0:
-                self.setMotors(80-float(20*1/self.targetDistance+1*abs(self.targetBearing)), 80+float(20*1/self.targetDistance+1*abs(self.targetBearing)))
+                self.setMotors(80-float(20/pi*abs(self.targetBearing)), 80+float(20/pi*abs(self.targetBearing)))
             elif self.targetBearing >0 :
-                self.setMotors(80+float(20*1/self.targetDistance+1*abs(self.targetBearing)), 80-float(20*1/self.targetDistance+1*abs(self.targetBearing)))
+                self.setMotors(80+float(20/pi*abs(self.targetBearing)), 80-float(20/pi*abs(self.targetBearing)))
             elif sqrt(1/self.strongestSignal) : R.radio.claim_territory()
          print('arrived')
          self.stop()
@@ -188,6 +189,12 @@ class Monrobot(Robot):
 R = Monrobot()
 speed = 70
 delay = 0.05
+def reachFirstPillar():
+    R.setMotors(99, 87)
+    R.sleep(1.56)
+    R.setMotors(0,0)
+    R.radio.claim_territory()
+reachFirstPillar()
 R.setMotors(speed,speed)
 while True :
     R.update()
