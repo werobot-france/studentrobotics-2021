@@ -175,7 +175,7 @@ class Monrobot(Robot):
             self.updateTarget
             if self.tsAV :
                 return
-            elif sqrt(1/self.strongestSignal) : R.radio.claim_territory()
+            elif sqrt(1/self.strongestSignal)<0.50: R.radio.claim_territory()
             elif self.targetBearing > 0:
                 self.setMotors(70-float(25*abs(self.targetBearing)), 70+float(25*abs(self.targetBearing)))
             elif self.targetBearing >0 :
