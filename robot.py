@@ -1,12 +1,9 @@
 # Branch Franck
-
 from sr.robot import *
 from math import *
-R = Robot()
-v = 70
+import logging
 
-from sr.robot import *
-from math import *
+logging.basicConfig(level=logging.WARNING)
 
 
 class Monrobot(Robot):
@@ -39,7 +36,7 @@ class Monrobot(Robot):
         self.y = -2
         self.actu = self.time()
         self.age = self.time()-self.actu
-        self.updateDS()
+        self.update()
     
     def update(self) :
         self.dsAVD = self.ruggeduinos[0].analogue_read(1)
@@ -52,7 +49,7 @@ class Monrobot(Robot):
         self.tsAR = self.ruggeduinos[0].digital_read(1)
 
         transmitters = self.radio.sweep()
-        self.transmitters = sorted(transmitters,key=lambda tx: tx.tx.signal_strength, reverse = True)
+        self.transmitters = sorted(transmitters,key=lambda tx: tx.signal_strength, reverse = True)
 
         if len(self.transmitters)>2:
             tempList = self.transmitters[:3]
@@ -60,13 +57,13 @@ class Monrobot(Robot):
             self.x = 0
             self.y = 0
             for tx in tempList :
-                coordPillars = self.pillars[tx.station_code]
+                coordPillars = self.pillars[tx.target_info.station_code]
                 self.x += coordPillars[0]*sqrt(tx.signal_strength)/sumStrength
                 self.y += coordPillars[1]*sqrt(tx.signal_strength)/sumStrength
             self.actu = self.time()
         elif len(self.transmitters) == 2 :
             dist = [sqrt(1/tx.signal_strength) for tx in self.transmitters]
-            coord = [self.pillars[tx.station_code] for tx in self.transmitters]
+            coord = [self.pillars[tx.target_info.station_code] for tx in self.transmitters]
 
             a = (coord[1][0]**2 + coord[1][1]**2 - coord[0][0]**2 - coord[0][1]**2 + dist[0]**2 - dist[1]**2)/(2*(coord[1][1]-coord[0][1]))
             d = (coord[1][0]-coord[0][0])/(coord[1][1]-coord[0][1])
@@ -92,7 +89,7 @@ class Monrobot(Robot):
         print(f"DS ARRIERE : G {self.dsARG} et D {self.dsARD}")
         print("------------------------------------------------")
         print(f"x = {self.x} et y = {self.y}")
-        print(f"Temps depuis la dernière actualisation des coordonnées : {self.age}")
+        print(f"Temps depuis la derniere actualisation des coordonnees : {self.age}")
         print("* * * * * * * * * * * * * * * * * * * * * * * * *")
 
     def setMotors(self,l,r):
@@ -103,8 +100,8 @@ class Monrobot(Robot):
 
 
 R = Monrobot()
-speed = 70
-delay = 0.05
+speed = 0
+delay = 0.1
 R.setMotors(speed,speed)
 while True :
     R.update()
