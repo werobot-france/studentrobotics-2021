@@ -2,8 +2,8 @@
 from sr.robot import *
 from math import *
 import logging
-
-logging.basicConfig(level=logging.WARNING)
+import numpy as np
+logging.basicConfig(level=logging.INFO)
 
 
 class Monrobot(Robot):
@@ -31,12 +31,20 @@ class Monrobot(Robot):
         self.rightMotor = self.motors[0].m1
         if self.zone == 0 :
             self.x = -4.5
+            self.theta = -pi/4
         else :
             self.x = 4.4
+            self.theta = -3*pi/4
         self.y = -2
         self.actu = self.time()
         self.age = self.time()-self.actu
         self.update()
+    def toPiPi(self,angle) :
+        while angle > pi :
+            angle -= 2*pi
+        while angle <= -pi :
+            angle += 2*pi
+        return angle
     
     def update(self) :
         self.dsAVD = self.ruggeduinos[0].analogue_read(1)
@@ -52,33 +60,64 @@ class Monrobot(Robot):
         self.transmitters = sorted(transmitters,key=lambda tx: tx.signal_strength, reverse = True)
 
         if len(self.transmitters)>2:
+            cst = 1
             tempList = self.transmitters[:3]
-            sumStrength = sum(list(sqrt(tx.signal_strength) for tx in tempList))
-            self.x = 0
-            self.y = 0
-            for tx in tempList :
-                coordPillars = self.pillars[tx.target_info.station_code]
-                self.x += coordPillars[0]*sqrt(tx.signal_strength)/sumStrength
-                self.y += coordPillars[1]*sqrt(tx.signal_strength)/sumStrength
-            self.actu = self.time()
-        elif len(self.transmitters) == 2 :
-            dist = [sqrt(1/tx.signal_strength) for tx in self.transmitters]
-            coord = [self.pillars[tx.target_info.station_code] for tx in self.transmitters]
+            # sumStrength = sum(list(sqrt(tx.signal_strength/cst) for tx in tempList))
+            # self.x = 0
+            # self.y = 0
+            # for tx in tempList :
+            #     coordPillars = self.pillars[tx.target_info.station_code]
+            #     logging.info(f"{tx.target_info.station_code}{coordPillars} force : {tx.signal_strength} ")
+            #     self.x += coordPillars[0]*sqrt(tx.signal_strength/cst)/sumStrength
+            #     self.y += coordPillars[1]*sqrt(tx.signal_strength/cst)/sumStrength
 
-            a = (coord[1][0]**2 + coord[1][1]**2 - coord[0][0]**2 - coord[0][1]**2 + dist[0]**2 - dist[1]**2)/(2*(coord[1][1]-coord[0][1]))
-            d = (coord[1][0]-coord[0][0])/(coord[1][1]-coord[0][1])
-            A = d**2+1
-            B = -2*coord[0][0]+2*coord[0][1]*d-2*a*d
-            C = coord[0][0]**2 + coord[0][1]**2 - 2*coord[0][1]*a + a**2 - dist[0]**2
-            Delta = B**2-4*A*C
-            x1 = (-B-sqrt(Delta))/(2*a)
-            x2 = (-B+sqrt(Delta))/(2*a)
-            if (self.x-x1)**2 < (self.x-x2)**2 :
-                self.x = x1
-            else :
-                self.x = x2
-            self.y = a-d*self.x
+            x= [self.pillars[tx.target_info.station_code][0] for tx in tempList]
+            y = [self.pillars[tx.target_info.station_code][1] for tx in tempList]
+            d = [sqrt(1/tx.signal_strength) for tx in tempList]
+
+            A = np.array([[2*(x[2]-x[0]),2*(y[2]-y[0])],[2*(x[2]-x[1]),2*(y[2]-y[1])]])
+            b = np.array([[d[0]**2-d[2]**2+x[2]**2-x[0]**2+y[2]**2-y[0]**2],[d[1]**2-d[2]**2+x[2]**2-x[1]**2+y[2]**2-y[1]**2]])
+            invA = np.linalg.inv(A)
+            coord = np.dot(invA,b)
+            self.x = coord[0][0]
+            self.y= coord[1][0]
+
+            P = self.pillars[tempList[-1].target_info.station_code]
+            logging.info(f"Pillier etudie : {tempList[-1].target_info.station_code} de coordonnees {P}")
+            logging.info(f"Coordonnees actuelles : ({self.x},{self.y})")
+            logging.info(f"Bearing = {tempList[-1].bearing} par rapport à {tempList[-1].target_info.station_code}")
+            logging.info(f"vecteur RP : ({P[0]-self.x},{P[1]-self.y})")
+            logging.info(f"resultat du atan2 : {atan2(P[1]-self.y,P[0]-self.x)}")
+
+            self.theta = self.toPiPi(tempList[2].bearing + atan2(-(P[1]-self.y),P[0]-self.x))
             self.actu = self.time()
+
+            
+
+
+
+
+
+
+
+        # elif len(self.transmitters) == 2 :
+        #     dist = [sqrt(1/tx.signal_strength) for tx in self.transmitters]
+        #     coord = [self.pillars[tx.target_info.station_code] for tx in self.transmitters]
+
+        #     a = (coord[1][0]**2 + coord[1][1]**2 - coord[0][0]**2 - coord[0][1]**2 + dist[0]**2 - dist[1]**2)/(2*(coord[1][1]-coord[0][1]))
+        #     d = (coord[1][0]-coord[0][0])/(coord[1][1]-coord[0][1])
+        #     A = d**2+1
+        #     B = -2*coord[0][0]+2*coord[0][1]*d-2*a*d
+        #     C = coord[0][0]**2 + coord[0][1]**2 - 2*coord[0][1]*a + a**2 - dist[0]**2
+        #     Delta = B**2-4*A*C
+        #     x1 = (-B-sqrt(Delta))/(2*a)
+        #     x2 = (-B+sqrt(Delta))/(2*a)
+        #     if (self.x-x1)**2 < (self.x-x2)**2 :
+        #         self.x = x1
+        #     else :
+        #         self.x = x2
+        #     self.y = a-d*self.x
+        #     self.actu = self.time()
         self.age = self.time()-self.actu
 
 
@@ -88,9 +127,11 @@ class Monrobot(Robot):
         print(f"DS GAUCHE : {self.dsG} et DROIT : {self.dsD}")
         print(f"DS ARRIERE : G {self.dsARG} et D {self.dsARD}")
         print("------------------------------------------------")
-        print(f"x = {self.x} et y = {self.y}")
+        print(f"x = {self.x} et y = {self.y} et orientation en degre= {180*self.theta/pi}")
         print(f"Temps depuis la derniere actualisation des coordonnees : {self.age}")
         print("* * * * * * * * * * * * * * * * * * * * * * * * *")
+        if len(self.transmitters)>0 :
+            logging.info(f"Signal le plus fort actuellement : {self.transmitters[0].target_info.station_code} : {self.transmitters[0].signal_strength}")
 
     def setMotors(self,l,r):
         self.leftMotor.power = l
