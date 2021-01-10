@@ -150,7 +150,7 @@ class Monrobot(Robot):
 
     def arrived(self):
         if self.targetDistance<0.50 :
-            if self.x>self.targets.self.pillarName[0]-self.positionThreshold and self.Y>self.targets.self.pillarName[1]-self.threshold and self.x<self.targets.self.pillarName[0]+self.threshold and self.Y<self.targets.self.pillarName[1]+self.threshold:
+            if self.x>self.targets[self.pillarName][0]-self.positionThreshold and self.Y>self.targets[self.pillarName][1]-self.threshold and self.x<self.targets[self.pillarName][0]+self.threshold and self.Y<self.targets[self.pillarName][1]+self.threshold:
                 return True
         return False  
     def orriented(self):
@@ -176,9 +176,9 @@ class Monrobot(Robot):
             if self.tsAV :
                 return
             elif self.targetBearing > 0:
-                self.setMotors(80-float(20/pi*abs(self.targetBearing)), 80+float(20/pi*abs(self.targetBearing)))
+                self.setMotors(80-float(20*abs(self.targetBearing)), 80+float(20*abs(self.targetBearing)))
             elif self.targetBearing >0 :
-                self.setMotors(80+float(20/pi*abs(self.targetBearing)), 80-float(20/pi*abs(self.targetBearing)))
+                self.setMotors(80+float(20*abs(self.targetBearing)), 80-float(20*abs(self.targetBearing)))
             elif sqrt(1/self.strongestSignal) : R.radio.claim_territory()
          print('arrived')
          self.stop()
