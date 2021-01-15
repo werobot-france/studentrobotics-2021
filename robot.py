@@ -34,21 +34,7 @@ class Monrobot(Robot):
         'SW':(2.65,0.9),
         'SZ':(1.1,1.7)
         }
-    # wayPoints = {
-    #     'PN':(-3.1,-1.1),
-    #     'EY':(-1.6,-0.35),
-    #     'PO':(1.6,-0.35),
-    #     'YL':(3.1,-1.1),
-    #     'BE':(0,-0.4),
-    #     'BG':(-3.9,0.3),
-    #     'OX':(-3.9,1.9),
-    #     'TS':(-2.85,1.1),
-    #     'VB':(-1 ,2),
-    #     'HV':(3.9,0.3),
-    #     'BN':(3.9,1.9),
-    #     'SW':(2.85,1.1),
-    #     'SZ':(1,2)
-    #     }
+    
     wayPoints = {
         'PN':(-3,-1.1),
         'EY':(-1.5,-0.15),
@@ -238,7 +224,10 @@ delay = 0.1
 def reachFirstPillar(R):
     dist = 1
     firstPillar = R.transmitters[0]
-    R.setMotors(79,89)
+    if R.zone == 0 :
+        R.setMotors(79,89)
+    else :
+        R.setMotors(87,79)
     while dist > 0.48 :
         R.sleep(0.1)
         R.update()
