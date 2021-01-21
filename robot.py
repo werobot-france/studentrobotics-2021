@@ -59,10 +59,10 @@ class Monrobot(Robot):
         self.rightMotor = self.motors[0].m1
         if self.zone == 0 :
             self.x = -4.5
-            self.theta = -pi/4
+            self.theta = self.toPiPi(3.926) #-pi/4
         else :
             self.x = 4.4
-            self.theta = -3*pi/4
+            self.theta = self.toPiPi(-2.266) #-3*pi/4
         self.y = -2
         self.actu = self.time()
         self.age = self.time()-self.actu
