@@ -197,13 +197,13 @@ class Monrobot(Robot):
             self.referencePositionY = self.y
             return(False)
 
-        if self.timeSinceMouvement == 6:
+        if self.timeSinceMouvement == 3:
             self.timeSinceMouvement = 0
             return(True)
 
-        if 6>self.timeSinceMouvement >= 1 and self.referencePositionX-0.05<self.x<self.referencePositionX+0.05 and self.referencePositionY-0.05<self.y<self.referencePositionY+0.05:
+        if 3>self.timeSinceMouvement >= 1 and self.referencePositionX-0.05<self.x<self.referencePositionX+0.05 and self.referencePositionY-0.05<self.y<self.referencePositionY+0.05:
             self.timeSinceMouvement = self.timeSinceMouvement+1
-            self.sleep(0.2)
+            self.sleep(0.1)
             return(False)
         else : 
             self.timeSinceMouvement = 0
@@ -222,7 +222,7 @@ class Monrobot(Robot):
             self.setMotors(0,0)
             logging.debug("Arret et claim")
             self.radio.claim_territory()
-        elif self.patinage() :
+        elif self.tsAV or self.patinage() :
             logging.debug("Coince a l avant : je recule")
             if self.wayPointBearing > 0 :
                 logging.debug("Nez vers la droite")
