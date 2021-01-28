@@ -11,6 +11,7 @@ class Monrobot(Robot):
     timeSinceMouvement = 0
     referencePositionX = 0
     referencePositionY = 0
+    distanceToKeep = 0
     targetBearing=0
     strongestSignal=0
     pillarName=''
@@ -144,11 +145,29 @@ class Monrobot(Robot):
         self.lastTarget=self.targetPillar.target_info.station_code
         self.radio.claim_territory()
 
+    def goBackToStart(self):
+        diff=0
+        while not self.ruggeduinos[0].digital_read(1):
+            if self.ruggeduinos[0].analogue_read(3)-self.distanceToKeep<0 : diff = 10
+            else : diff = -10
+            self.setMotors(-100+diff, -100-diff)
+            self.sleep(0.1)
+        self.setMotors(100,0)
+        self.sleep(0.5)
+        self.setMotors(100,100)
+        self.sleep(0.2)
+        return
+
     def selectTargets(self):
         if len(self.transmitters) == 0 : 
             self.targetPillar = None
             self.targetWayPoint = (0,0)
             return
+        if self.lastTarget=='EY':
+            print('je suis coince')
+            self.distanceToKeep = self.dsD-0.1
+            self.lastTarget=''
+            self.goBackToStart()
         for tx in self.transmitters:
             logging.debug(f"Evaluation 1ere cond dans selctT : {(not tx.target_info.owned_by == self.zone)} pour {tx.target_info.station_code}")
             if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx):
@@ -211,6 +230,8 @@ class Monrobot(Robot):
         else : 
             self.timeSinceMouvement = 0
             return(False)
+
+            
 
     def goToTarget(self):
         logging.debug("Entree dans goToTarget")
