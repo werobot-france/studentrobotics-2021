@@ -15,6 +15,7 @@ class Monrobot(Robot):
     strongestSignal=0
     pillarName=''
     targetOwner=''
+    lastTarget=''
     targetDistance=0
     positionThreshold= 0.1
     rotationThreshold = 12
@@ -139,6 +140,9 @@ class Monrobot(Robot):
         logging.info(f"Target Way Point : {self.targetWayPoint}")
         logging.info(f"Way Point Bearing : {self.wayPointBearing}")
 
+    def claim(self):
+        self.lastTarget=self.targetPillar.target_info.station_code
+        self.radio.claim_territory()
 
     def selectTargets(self):
         if len(self.transmitters) == 0 : 
@@ -188,8 +192,7 @@ class Monrobot(Robot):
     def setMotors(self,l,r):
         self.leftMotor.power = l
         self.rightMotor.power = r
-
-
+            
     def patinage(self):
         if self.timeSinceMouvement == 0:
             self.timeSinceMouvement = 1
@@ -221,7 +224,7 @@ class Monrobot(Robot):
         if  dist < 0.48 :
             self.setMotors(0,0)
             logging.debug("Arret et claim")
-            self.radio.claim_territory()
+            self.claim()
         elif self.tsAV or self.patinage() :
             logging.debug("Coince a l avant : je recule")
             if self.wayPointBearing > 0 :
@@ -259,7 +262,7 @@ def reachFirstPillar(R):
         dist = sqrt(1/firstPillar.signal_strength)
         logging.debug(f"Distance au 1st pillar {firstPillar.target_info.station_code} : {dist}")
     R.setMotors(0,0)
-    R.radio.claim_territory()
+    R.claim()
     logging.debug("first pillar should be claimed")
 
 
