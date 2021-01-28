@@ -11,7 +11,7 @@ class Monrobot(Robot):
     timeSinceMouvement = 0
     referencePositionX = 0
     referencePositionY = 0
-    distanceToKeep = 0
+    distanceToKeep = 0.10
     targetBearing=0
     strongestSignal=0
     pillarName=''
@@ -47,14 +47,14 @@ class Monrobot(Robot):
         'PO':(1.5,-0.35),
         'YL':(3,-1.1),
         'BE':(0,0.4),
-        'BG':(-4.1,0.5),
+        'BG':(-4.5,0.1),
         'OX':(-4.1,1.3),
-        'TS':(-2.35,1.2),
-        'VB':(-0.8 ,1.4),
-        'HV':(4.1,0.5),
+        'TS':(-2.65,1.4),
+        'VB':(-1.1 ,1.3),
+        'HV':(4.5,0.1),
         'BN':(4.1,1.3),
-        'SW':(2.95,1.2),
-        'SZ':(0.8,1.4)
+        'SW':(2.65,1.4),
+        'SZ':(1.1,1.3)
     }
 
 
@@ -153,9 +153,9 @@ class Monrobot(Robot):
             self.setMotors(-100+diff, -100-diff)
             self.sleep(0.1)
         self.setMotors(100,0)
-        self.sleep(0.5)
+        self.sleep(0.45)
         self.setMotors(100,100)
-        self.sleep(0.2)
+        self.sleep(0.3)
         return
 
     def selectTargets(self):
@@ -165,9 +165,24 @@ class Monrobot(Robot):
             return
         if self.lastTarget=='EY':
             print('je suis coince')
-            self.distanceToKeep = self.dsD-0.1
             self.lastTarget=''
             self.goBackToStart()
+        if self.lastTarget=='VB':
+            for tx in self.transmitters:
+                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx) and tx.target_info.station_code == 'BE':
+                    self.targetPillar = tx
+                    self.pillarName = tx.target_info.station_code
+                    self.targetWayPoint = self.wayPoints[self.pillarName]
+                    return
+                self.sleep(0.1)
+        if self.lastTarget=='BE':
+            for tx in self.transmitters:
+                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx) and tx.target_info.station_code == 'SZ':
+                    self.targetPillar = tx
+                    self.pillarName = tx.target_info.station_code
+                    self.targetWayPoint = self.wayPoints[self.pillarName]
+                    return
+                self.sleep(0.1)
         for tx in self.transmitters:
             logging.debug(f"Evaluation 1ere cond dans selctT : {(not tx.target_info.owned_by == self.zone)} pour {tx.target_info.station_code}")
             if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx):
