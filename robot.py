@@ -61,6 +61,7 @@ class Monrobot(Robot):
 
     def __init__(self):
         Robot.__init__(self)
+        self.startTime = self.time()
         self.leftMotor = self.motors[0].m0
         self.rightMotor = self.motors[0].m1
         if self.zone == 0 :
@@ -147,15 +148,28 @@ class Monrobot(Robot):
 
     def goBackToStart(self):
         diff=0
+        if self.zone == 0 : 
+            while not self.ruggeduinos[0].digital_read(1):
+                if self.patinage() : self.setMotors(100, 70); self.sleep(0.2) 
+                if self.ruggeduinos[0].analogue_read(3)-self.distanceToKeep<0 : diff = 10
+                else : diff = -10
+                self.setMotors(-100+diff, -100-diff)
+                self.sleep(0.1)
+            self.setMotors(100,0)
+            self.sleep(0.45)
+            self.setMotors(100,100)
+            self.sleep(0.2)
+            return
         while not self.ruggeduinos[0].digital_read(1):
-            if self.ruggeduinos[0].analogue_read(3)-self.distanceToKeep<0 : diff = 10
-            else : diff = -10
-            self.setMotors(-100+diff, -100-diff)
+            if self.patinage() : self.setMotors(70, 100); self.sleep(0.2)
+            if self.ruggeduinos[0].analogue_read(2)-self.distanceToKeep<0 : diff = 9
+            else : diff = -9
+            self.setMotors(-100-diff, -100+diff)
             self.sleep(0.1)
-        self.setMotors(100,0)
+        self.setMotors(0,100)
         self.sleep(0.45)
         self.setMotors(100,100)
-        self.sleep(0.3)
+        self.sleep(0.2)
         return
 
     def selectTargets(self):
@@ -163,11 +177,11 @@ class Monrobot(Robot):
             self.targetPillar = None
             self.targetWayPoint = (0,0)
             return
-        if self.lastTarget=='EY':
+        if self.lastTarget=='EY' or self.lastTarget=='PO':
             print('je suis coince')
             self.lastTarget=''
             self.goBackToStart()
-        if self.lastTarget=='VB':
+        if self.lastTarget=='VB'  or self.lastTarget=='SZ':
             for tx in self.transmitters:
                 if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx) and tx.target_info.station_code == 'BE':
                     self.targetPillar = tx
@@ -177,7 +191,7 @@ class Monrobot(Robot):
                 self.sleep(0.1)
         if self.lastTarget=='BE':
             for tx in self.transmitters:
-                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx) and tx.target_info.station_code == 'SZ':
+                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx) and tx.target_info.station_code == 'SZ' or tx.target_info.station_code == 'VB':
                     self.targetPillar = tx
                     self.pillarName = tx.target_info.station_code
                     self.targetWayPoint = self.wayPoints[self.pillarName]
@@ -197,6 +211,7 @@ class Monrobot(Robot):
         print("toutes les cibles à portee sont à nous, direction le centre de la map")
     
     def isTargetReachable(self,tx):
+        if self.time() - self.startTime > 60 : return True
         xp,yp = self.wayPoints[tx.target_info.station_code]
         # Coef dir de (RP) :
         m = (yp-self.y)/(xp-self.x)
@@ -288,9 +303,9 @@ def reachFirstPillar(R):
     dist = 1
     firstPillar = R.transmitters[0]
     if R.zone == 0 :
-        R.setMotors(79,89)
+        R.setMotors(80,89)
     else :
-        R.setMotors(87,79)
+        R.setMotors(87,80)
     while dist > 0.48 :
         R.sleep(0.1)
         R.update()
