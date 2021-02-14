@@ -9,8 +9,8 @@ logging.basicConfig(level=logging.DEBUG)
 class Monrobot(Robot):
 
     timeSinceMouvement = 0
-    referencePositionX = 0
-    referencePositionY = 0
+    x = 2
+    y = -4.5
     distanceToKeep = 0.10
     targetBearing=0
     strongestSignal=0
@@ -92,6 +92,7 @@ class Monrobot(Robot):
         self.dsARD = self.ruggeduinos[0].analogue_read(5)
         self.tsAV = self.ruggeduinos[0].digital_read(0)
         self.tsAR = self.ruggeduinos[0].digital_read(1)
+        self.theta = self.toPiPi(pi/2 - self.compass.get_heading() )
 
         transmitters = self.radio.sweep()
         self.transmitters = sorted(transmitters,key=lambda tx: tx.signal_strength, reverse = True)
@@ -109,8 +110,6 @@ class Monrobot(Robot):
                 coord = np.dot(invA,b)
                 self.x = coord[0][0]
                 self.y= coord[1][0]
-                P = self.pillars[tempList[-1].target_info.station_code]
-                self.theta = self.toPiPi(tempList[2].bearing + atan2(-(P[1]-self.y),P[0]-self.x))
                 self.actu = self.time()
                 logging.debug(f"x = {self.x} et y = {self.y} et orientation en degre= {180*self.theta/pi}")        
             except  :
@@ -120,6 +119,25 @@ class Monrobot(Robot):
                 logging.warning(f"y = {y}")
                 logging.warning(f"d = {d}")
                 pass
+        elif len(self.transmitters)==2: 
+            tempList = self.transmitters[:2]
+            x= [self.pillars[tx.target_info.station_code][0] for tx in tempList]
+            y = [self.pillars[tx.target_info.station_code][1] for tx in tempList]
+            d = [sqrt(1/tx.signal_strength) for tx in tempList]
+            R = (x[1]-x[0])**2+(y[1]-y[0])**2
+            K = (d[0]**2-d[1]**2)/(2*R)
+            ix1 = (x[0]+x[1])/2+(x[1]-x[0])*(K+sqrt((d[0]**2+d[1]**2)/(2*R)-K**2-1/4))
+            ix2 = (x[0]+x[1])/2+(x[1]-x[0])*(K-sqrt((d[0]**2+d[1]**2)/(2*R)-K**2-1/4))
+            iy1 = (y[0]+y[1])/2+(y[1]-y[0])*(K+sqrt((d[0]**2+d[1]**2)/(2*R)-K**2-1/4))
+            iy2 = (y[0]+y[1])/2+(y[1]-y[0])*(K-sqrt((d[0]**2+d[1]**2)/(2*R)-K**2-1/4))
+            if sqrt( (ix1- self.x )**2 + (iy1- self.y)**2 ) < sqrt( (ix2- self.x )**2 + (iy2- self.y)**2 ) :
+                self.x = ix1
+                self.y = iy1
+            else : 
+                self.x = ix2
+                self.y = iy2
+                self.actu = self.time()
+                logging.debug(f"x = {self.x} et y = {self.y} et orientation en degre= {180*self.theta/pi}")             
         else :
             logging.debug("Pas d'actualisation des coordonnees")            
         self.age = self.time()-self.actu
@@ -303,7 +321,7 @@ def reachFirstPillar(R):
     dist = 1
     firstPillar = R.transmitters[0]
     if R.zone == 0 :
-        R.setMotors(80,89)
+        R.setMotors(79,89)
     else :
         R.setMotors(87,80)
     while dist > 0.48 :
