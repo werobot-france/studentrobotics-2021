@@ -20,6 +20,7 @@ class Monrobot(Robot):
     targetDistance=0
     positionThreshold= 0.1
     rotationThreshold = 12
+    reverse = False
     walls = {
         'WM' : {'xA' :  -1.1, 'yA' : 4.3, 'xB' : 0.795, 'yB' : 0.765},
         'WC' : {'xA' : -1.255 , 'yA' : 0.49, 'xB' : 0.595, 'yB' : 0.88},
@@ -42,21 +43,15 @@ class Monrobot(Robot):
         'SZ':(1.1,1.7)
         }
     
-    wayPoints = {
-        'PN':(-3,-1.1),
-        'EY':(-1.5,-0.15),
-        'PO':(1.5,-0.35),
-        'YL':(3,-1.1),
-        'BE':(0,0.4),
-        'BG':(-4.5,0.1),
-        'OX':(-4.1,1.3),
-        'TS':(-2.65,1.4),
-        'VB':(-1.1 ,1.3),
-        'HV':(4.5,0.1),
-        'BN':(4.1,1.3),
-        'SW':(2.65,1.4),
-        'SZ':(1.1,1.3)
-    }
+    wayPoints = [
+        (-3,-1.1, False),
+        (-1.5,-0.15, False),
+        (-4.5,-1.5, True),
+        (-4.5,0.1, False),
+        (-4.1,1.3, False),
+        (-2.65,1.4, False),
+        (-1.1 ,1.3, False),
+    ]
 
 
 
@@ -129,18 +124,23 @@ class Monrobot(Robot):
             x= [self.pillars[tx.target_info.station_code][0] for tx in tempList]
             y = [self.pillars[tx.target_info.station_code][1] for tx in tempList]
             d = [sqrt(1/tx.signal_strength) for tx in tempList]
-            R = (x[1]-x[0])**2+(y[1]-y[0])**2
-            K = (d[0]**2-d[1]**2)/(2*R)
-            if (d[0]**2+d[1]**2)/(2*R)-K**2-1/4 >0: 
-                problem=(d[0]**2+d[1]**2)/(2*R)-K**2-1/4
-            else : 
-                problem = 0
-            print( x[0], x[1], y[0], y[1], d[0], d[1], R, K, (d[0]**2+d[1]**2)/(2*R)-K**2-1/4)
-            ix1 = (x[0]+x[1])/2+(x[1]-x[0])*(K+sqrt(problem))
-            ix2 = (x[0]+x[1])/2+(x[1]-x[0])*(K-sqrt(problem))
-            iy1 = (y[0]+y[1])/2+(y[1]-y[0])*(K+sqrt(problem))
-            iy2 = (y[0]+y[1])/2+(y[1]-y[0])*(K-sqrt(problem))
-
+            # R = (x[1]-x[0])**2+(y[1]-y[0])**2
+            # K = (d[0]**2-d[1]**2)/(2*R)
+            # if (d[0]**2+d[1]**2)/(2*R)-K**2-1/4 >0: 
+            #     problem=(d[0]**2+d[1]**2)/(2*R)-K**2-1/4
+            # else : 
+            #     problem = 0
+            print("les coordonnees en x1 et x2 des deux centres :", x[0], x[1],  "les coordonnees en y1 et y2 des deux centres :", y[0], y[1])
+            print("les rayons des deux cercles/les distances aux centres :", d[0], d[1])
+            #print("l'écart entre les deux centres :", R)
+            #print("K = ",K, "le truc sous la racine :", (d[0]**2+d[1]**2)/(2*R)-K**2-1/4)
+            # ix1 = (x[0]+x[1])/2+(x[1]-x[0])*(K+sqrt(problem)) 
+            # ix2 = (x[0]+x[1])/2+(x[1]-x[0])*(K-sqrt(problem))
+            # iy1 = (y[0]+y[1])/2+(y[1]-y[0])*(K+sqrt(problem))
+            # iy2 = (y[0]+y[1])/2+(y[1]-y[0])*(K-sqrt(problem))
+            ix1,iy1,ix2,iy2 = self.getIntersections(x[0],y[0],d[0],x[1],y[1],d[1])
+            print('les coordonnees du premier point d\'intersection :', ix1, iy1)
+            print('les coordonnees du second point d\'intersection:', ix2, iy2)
             if sqrt( (ix1- self.x )**2 + (iy1- self.y)**2 ) < sqrt( (ix2- self.x )**2 + (iy2- self.y)**2 ) :
                 self.x = ix1
                 self.y = iy1
@@ -152,28 +152,59 @@ class Monrobot(Robot):
         else :
             logging.debug("Pas d'actualisation des coordonnees")            
         self.age = self.time()-self.actu
-        if self.targetPillar == None :
-            self.selectTargets()
-        else :
-            tempPillar = [tx for tx in self.transmitters if tx.target_info.station_code == self.targetPillar.target_info.station_code]
-            if len(tempPillar) > 0:
-                tempPillar = tempPillar[0]
-                if tempPillar.target_info.owned_by == self.zone :
-                    logging.debug(f"Ancienne cible {self.targetPillar.target_info.station_code} = {tempPillar.target_info.station_code} deja a moi. Changement.")
-                    self.selectTargets()
-                else :
-                    self.targetPillar = tempPillar
-            else :
-                self.selectTargets()
-        self.wayPointBearing = self.toPiPi(self.theta - (atan2(-(self.targetWayPoint[1]-self.y),self.targetWayPoint[0]-self.x)))
+
+
+
+        if sqrt(1/self.transmitters[0].signal_strength)<0.5 and (not tx.target_info.owned_by == self.zone) :
+            self.claim()
+            
+        if sqrt((self.x-self.wayPoints[0][0])**2)+(self.y-self.wayPoints[0][1])**2<0.1 :
+            self.wayPoints.pop(0)
+        self.wayPointBearing = self.toPiPi(self.theta - (atan2(-(self.wayPoints[0][1]-self.y),self.wayPoints[0][0]-self.x)))
+        self.reverse = self.wayPoints[0][2]
+#        if self.targetPillar == None :
+#            self.selectTargets()
+#        else :
+#            tempPillar = [tx for tx in self.transmitters if tx.target_info.station_code == self.targetPillar.target_info.station_code]
+#            if len(tempPillar) > 0:
+#                tempPillar = tempPillar[0]
+#                if tempPillar.target_info.owned_by == self.zone :
+#                    logging.debug(f"Ancienne cible {self.targetPillar.target_info.station_code} = {tempPillar.target_info.station_code} deja a moi. Changement.")
+#                    self.selectTargets()
+#                else :
+#                    self.targetPillar = tempPillar
+#            else :
+#                self.selectTargets()
         logging.info(f" Info sur les cibles :")
-        logging.info(f"Target Pillar : {self.pillarName}")
-        logging.info(f"Target Way Point : {self.targetWayPoint}")
         logging.info(f"Way Point Bearing : {self.wayPointBearing}")
 
     def claim(self):
-        self.lastTarget=self.targetPillar.target_info.station_code
         self.radio.claim_territory()
+
+
+    def getIntersections(self, x0, y0, r0, x1, y1, r1):
+        # circle 1: (x0, y0), radius r0
+        # circle 2: (x1, y1), radius r1
+        d=sqrt((x1-x0)**2 + (y1-y0)**2)
+        
+        # non intersecting
+        if d < abs(r0-r1):
+            return None
+        # coincident circles
+        if d == 0 and r0 == r1:
+            return None
+        else:
+            a=(r0**2-r1**2+d**2)/(2*d)
+            h=sqrt(r0**2-a**2)
+            x2=x0+a*(x1-x0)/d   
+            y2=y0+a*(y1-y0)/d   
+            x3=x2+h*(y1-y0)/d     
+            y3=y2-h*(x1-x0)/d 
+
+            x4=x2-h*(y1-y0)/d
+            y4=y2+h*(x1-x0)/d
+            
+            return (x3, y3, x4, y4)
 
     def goBackToStart(self):
         diff=0
@@ -212,7 +243,7 @@ class Monrobot(Robot):
             self.goBackToStart()
         if self.lastTarget=='VB'  or self.lastTarget=='SZ':
             for tx in self.transmitters:
-                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx) and tx.target_info.station_code == 'BE':
+                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(self.wayPoints[tx.target_info.station_code][0], self.wayPoints[tx.target_info.station_code][1]) and tx.target_info.station_code == 'BE':
                     self.targetPillar = tx
                     self.pillarName = tx.target_info.station_code
                     self.targetWayPoint = self.wayPoints[self.pillarName]
@@ -220,7 +251,7 @@ class Monrobot(Robot):
                 self.sleep(0.1)
         if self.lastTarget=='BE':
             for tx in self.transmitters:
-                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx) and tx.target_info.station_code == 'SZ' or tx.target_info.station_code == 'VB':
+                if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(self.wayPoints[tx.target_info.station_code][0], self.wayPoints[tx.target_info.station_code][1]) and tx.target_info.station_code == 'SZ' or tx.target_info.station_code == 'VB':
                     self.targetPillar = tx
                     self.pillarName = tx.target_info.station_code
                     self.targetWayPoint = self.wayPoints[self.pillarName]
@@ -228,7 +259,7 @@ class Monrobot(Robot):
                 self.sleep(0.1)
         for tx in self.transmitters:
             logging.debug(f"Evaluation 1ere cond dans selctT : {(not tx.target_info.owned_by == self.zone)} pour {tx.target_info.station_code}")
-            if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(tx):
+            if  (not tx.target_info.owned_by == self.zone) and self.isTargetReachable(self.wayPoints[tx.target_info.station_code][0], self.wayPoints[tx.target_info.station_code][1]):
                 self.targetPillar = tx
                 self.pillarName = tx.target_info.station_code
                 self.targetWayPoint = self.wayPoints[self.pillarName]
@@ -311,34 +342,32 @@ class Monrobot(Robot):
 
     def goToTarget(self):
         logging.debug("Entree dans goToTarget")
-        try :
-            dist = sqrt(1/self.targetPillar.signal_strength)
-            logging.debug(f"Distance au pillar {self.targetPillar.target_info.station_code} : {dist}")
-        except :
-            logging.debug("Distance au pillier non calculable, distance fixee à 3m")
-            dist = 3
-        
-        if  dist < 0.48 :
-            self.setMotors(0,0)
-            logging.debug("Arret et claim")
-            self.claim()
-        elif self.tsAV or self.patinage() :
+
+        if self.tsAV or self.patinage() :
             logging.debug("Coince a l avant : je recule")
             if self.wayPointBearing > 0 :
                 logging.debug("Nez vers la droite")
-                self.setMotors(-100*cos(self.wayPointBearing),-100)
+                left=-100*cos(self.wayPointBearing)
+                right = -100
             else :
                 logging.debug("Nez vers la gauche")
-                self.setMotors(-100,-100*cos(self.wayPointBearing))
-            self.sleep(0.2)
+                left=-100
+                right=-100*cos(self.wayPointBearing)
+
         elif self.wayPointBearing > 0 :
             logging.debug("Bifurque à droite")
-            self.setMotors(speed,speed*cos(self.wayPointBearing)**3)
+            left = speed
+            right = speed*cos(self.wayPointBearing)**3
             
         elif self.wayPointBearing < 0 :
             logging.debug("Bifurque à gauche")            
-            self.setMotors(speed*cos(self.wayPointBearing)**3,speed)         
+            left = speed*cos(self.wayPointBearing)**3
+            right = speed
         logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
+
+        if self.reverse :
+            left,right = -right,-left
+        self.setMotors(left,right)
         
        
 R = Monrobot()
@@ -363,9 +392,8 @@ def reachFirstPillar(R):
     logging.debug("first pillar should be claimed")
 
 
-reachFirstPillar(R)
-R.setMotors(speed,speed)
-R.sleep(delay)
+#R.setMotors(speed,speed)
+#R.sleep(delay)
 while True :
     R.update()
     R.goToTarget()
