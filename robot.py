@@ -339,12 +339,6 @@ class Monrobot(Robot):
             logging.debug("Bifurque à gauche")            
             self.setMotors(speed*cos(self.wayPointBearing)**3,speed)         
         logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
-    
-            
-        elif self.wayPointBearing < 0 :
-            logging.debug("Bifurque à gauche")            
-            self.setMotors(speed*cos(self.wayPointBearing)**3,speed)         
-        logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
         
        
 R = Monrobot()
