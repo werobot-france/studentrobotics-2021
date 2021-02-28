@@ -272,7 +272,7 @@ class Monrobot(Robot):
                 logging.debug("Nez vers la gauche")
                 left=-100
                 right=-100*cos(self.wayPointBearing)
-        if self.tsAR or (self.patinage() and self.reverse):
+        elif self.tsAR or (self.patinage() and self.reverse):
             logging.debug("Coince a l'arriere : je recule")
             if self.wayPointBearing > 0 :
                 logging.debug("Nez vers la droite")
