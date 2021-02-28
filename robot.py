@@ -262,27 +262,26 @@ class Monrobot(Robot):
         logging.debug("Entree dans goToTarget")
         if self.reverse : self.wayPointBearing = self.toPiPi(self.wayPointBearing + pi)
 
-        if self.tsAV or self.tsAR or self.patinage() :
-            if self.reverse :
-                    logging.debug("Coince a l'arriere : je recule")
-                    if self.wayPointBearing > 0 :
-                        logging.debug("Nez vers la droite")
-                        left=100*cos(self.wayPointBearing)
-                        right = 100
-                    else :
-                    logging.debug("Nez vers la gauche")
-                    left=-100
-                    right=-100*cos(self.wayPointBearing)
-            if not self.reverse :
-                logging.debug("Coince a l avant : je recule")
-                if self.wayPointBearing > 0 :
-                    logging.debug("Nez vers la droite")
-                    left=-100*cos(self.wayPointBearing)
-                    right = -100
-                else :
-                    logging.debug("Nez vers la gauche")
-                    left=-100
-                    right=-100*cos(self.wayPointBearing)
+        if self.tsAV or (self.patinage() and not self.reverse):
+            logging.debug("Coince a l avant : je recule")
+            if self.wayPointBearing > 0 :
+                logging.debug("Nez vers la droite")
+                left=-100*cos(self.wayPointBearing)
+                right = -100
+            else :
+                logging.debug("Nez vers la gauche")
+                left=-100
+                right=-100*cos(self.wayPointBearing)
+        if self.tsAR or (self.patinage() and self.reverse):
+            logging.debug("Coince a l'arriere : je recule")
+            if self.wayPointBearing > 0 :
+                logging.debug("Nez vers la droite")
+                left=100*cos(self.wayPointBearing)
+                right = 100
+            else :
+                logging.debug("Nez vers la gauche")
+                left=100
+                right=100*cos(self.wayPointBearing)
 
 
         elif self.wayPointBearing > 0 :
