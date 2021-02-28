@@ -269,7 +269,11 @@ class Monrobot(Robot):
                         logging.debug("Nez vers la droite")
                         left=100*cos(self.wayPointBearing)
                         right = 100
-            if not self.reverse : 
+                    else :
+                    logging.debug("Nez vers la gauche")
+                    left=-100
+                    right=-100*cos(self.wayPointBearing)
+            if not self.reverse :
                 logging.debug("Coince a l avant : je recule")
                 if self.wayPointBearing > 0 :
                     logging.debug("Nez vers la droite")
@@ -279,7 +283,7 @@ class Monrobot(Robot):
                     logging.debug("Nez vers la gauche")
                     left=-100
                     right=-100*cos(self.wayPointBearing)
-                
+
 
         elif self.wayPointBearing > 0 :
             logging.debug("Bifurque à droite")
@@ -293,7 +297,7 @@ class Monrobot(Robot):
         logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
 
         if self.reverse :
-            left,right = -left,-right
+            left,right = -right,-left
         self.setMotors(left,right)
         
        
