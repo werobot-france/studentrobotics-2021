@@ -43,12 +43,12 @@ class Monrobot(Robot):
         'SZ':(1.1,1.7)
         }
     
-    wayPoints = [
+    wayPoints0 = [
         (-3,-1.1, False),
         #(-1.5,-0.15, False),
         (-1.6,-0.25, False),
         #(-4.6,-1.6, True),
-        (-4.4,-1.5, True),
+        (-4.5,-1.6, True), # -4.4 -1.5
         (-4.7,-1,False), # <-- point intermédiaire pour faciliter le passage ?
         (-4.5,0.1, False), # (-4.75,0.1,False) à tester ?
         
@@ -57,15 +57,33 @@ class Monrobot(Robot):
         (-1.1 ,1.3, False),
         (0 ,0.4, False),
         (1.1,1.3, False),
-        (2.65,1.4, False),
-        (4.5,0.1, False),
+        (2.65,1 , False),
         (4.1,1.3, False),
+        (4.5,0.1, False),
         (4.6,-1.6, False),
         (1.5,-0.35, False),
-        (3,-1.1, False),
+        (3,-1.1, True),
     ]
 
+    wayPoints1 = [
+        (3,-1.1, False),
+        (1.5,-0.35, False),
+        (4.5,-1.6, True), # 4.4 -1.5
+        (4.7,-1, False),
+        (4.5,0.1, False),
 
+        (4.1,1.3, False),
+        (2.65,1.2, False),
+        (1.1,1.3, False),
+        (0 ,0.4, False),
+        (-1.1,1.3, False),
+        (-2.65,1.2, False),
+        (-4.1,1.3, False),
+        (-4.5,0.1, False),
+        (-4.6,-1.6, False),
+        (-1.5,-0.35, False),
+        (-3,-1.1, True),
+    ]
 
     def __init__(self):
         Robot.__init__(self)
@@ -74,9 +92,11 @@ class Monrobot(Robot):
         self.rightMotor = self.motors[0].m1
         if self.zone == 0 :
             self.x = -4.5
+            self.wayPoints = self.wayPoints0
             #self.theta = self.toPiPi(3.926) #-pi/4
         else :
             self.x = 4.4
+            self.wayPoints = self.wayPoints1
             #self.theta = self.toPiPi(-2.266) #-3*pi/4
         self.theta = self.toPiPi(pi/2 - self.compass.get_heading() )
         logging.debug(f"theta initial : {self.theta}")
