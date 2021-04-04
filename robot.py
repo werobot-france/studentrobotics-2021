@@ -27,22 +27,74 @@ class Monrobot(Robot):
         'EM' : {'xA' : -1.1 , 'yA' : -4.3, 'xB' : 0.795, 'yB' : -0.765},
         'EC' : {'xA' : -1.255 , 'yA' : -0.49, 'xB' : 0.595, 'yB' : -0.88}
     }
+    # Rose
+    pointsToCheck0 = {
+    #    'OX' : {''},
+        'TH' : {'PN'},
+    #    'PN' : {''},
+    #    'BG' : {''},
+        'TS' : {'OX'},
+        'EY' : {'PN'},
+        'VB' : {'OX'},
+        'FL' : {'EY'},
+        'YT' : {'HA'},
+        'HA' : {'BE'},
+        'BE' : {'VB'},
+        'PL' : {'VB'},
+        'PO' : {'FL'},
+        'SZ' : {'PO'},
+        'SW' : {'BN'},
+        'YL' : {'PO'},
+        'HV' : {'SZ'},
+        'SF' : {'YL'},
+        'BN' : {'SZ'}
+    }
+
+    # Jaune
+    pointsToCheck1 = {
+        'OX' : {'VB'},
+        'TH' : {'PN'},
+        'PN' : {'EY'},
+        'BG' : {'VB'},
+        'TS' : {'OX'},
+        'EY' : {'FL'},
+        'VB' : {'BE'},
+        'FL' : {'PO'},
+        'YT' : {'HA'},
+        'HA' : {'BE'},
+        'BE' : {'SZ'},
+        'PL' : {'SZ'},
+        'PO' : {'YL'},
+        'SZ' : {'BN'},
+        'SW' : {'BN'},
+    #    'YL' : {''},
+    #    'HV' : {''},
+        'SF' : {'YL'},
+    #    'BN' : {''}
+    }
+
     pillars = {
-        'PN':(-3,-1.5),
-        'EY':(-1.5,-0.75),
-        'PO':(1.5,-0.75),
-        'YL':(3,-1.5),
-        'BE':(0,0),
-        'BG':(-4.1,0.1),
-        'OX':(-4.1,1.7),
-        'TS':(-2.65,0.9),
-        'VB':(-1.1,1.7),
-        'HV':(4.1,0.1),
-        'BN':(4.1,1.7),
-        'SW':(2.65,0.9),
-        'SZ':(1.1,1.7)
-        }
-    
+        "PN" : (-4.2, -1.8),
+        "EY" : (-1.95, -0.75),
+        "BE" : (0, 1.5),
+        "PO" : (1.95, -0.75),
+        "YL" : (4.2, -1.8),
+        "BG" : (-4.2, 0),
+        "OX" : (-6.6, 3),
+        "TS" : (-2.75, 2.75),
+        "VB" : (-1.95, 0.75),
+        "HV" : (4.2, 0),
+        "BN" : (6.6, 3),
+        "SW" : (2.75, 2.75),
+        "SZ" : (1.95, 0.75),
+        "FL" : (0, -3),
+        "YT" : (0, -1.5),
+        "HA" : (0, 0),
+        "PL" : (0, 3),
+        "TH" : (-6.6, -3),
+        "SF" : (6.6, -3),
+    }
+
     wayPointsToPillars = {
         "PN" : (-4, -2.00, False),
         "EY" : (-1.95,-1.15, False),
@@ -64,40 +116,24 @@ class Monrobot(Robot):
         "TH" : (-6.25, -3, False),
         "SF" : (6.25, -3, False),
     }
-    wayPoints0 = ["OX", "TS", "VB","BG","PN", "EY", "FL", "PO", "YL" ]
-
-    wayPoints1 = [
-        (3,-1.1, False),
-        (1.5,-0.35, False),
-        (4.5,-1.6, True), # 4.4 -1.5
-        (4.7,-1, False),
-        (4.5,0.1, False),
-
-        (4.1,1.3, False),
-        (2.65,1.2, False),
-        (1.1,1.3, False),
-        (0 ,0.4, False),
-        (-1.1,1.3, False),
-        (-2.65,1.2, False),
-        (-4.1,1.3, False),
-        (-4.5,0.1, False),
-        (-4.6,-1.6, False),
-        (-1.5,-0.35, False),
-        (-3,-1.1, True),
-    ]
+    wayPoints0 = ["PN",  "EY", "FL", "PO", "YL", "SZ" ]
+    wayPoints1 = ["BN", "SW", "SZ", "HV", "YL",  "PO", "FL", "EY", "PN" ]
 
     def __init__(self):
         Robot.__init__(self)
         self.startTime = self.time()
         self.leftMotor = self.motors[0].m0
         self.rightMotor = self.motors[0].m1
+        self.opzone=abs(self.zone-1)
         if self.zone == 0 :
             self.x = -4.5
             self.wayPoints = self.wayPoints0
+            self.pointsToCheck = self.pointsToCheck0
             #self.theta = self.toPiPi(3.926) #-pi/4
         else :
             self.x = 4.4
             self.wayPoints = self.wayPoints1
+            self.pointsToCheck = self.pointsToCheck1
             #self.theta = self.toPiPi(-2.266) #-3*pi/4
         self.theta = self.toPiPi(pi/2 - self.compass.get_heading() )
         logging.debug(f"theta initial : {self.theta}")
@@ -134,6 +170,9 @@ class Monrobot(Robot):
 
         if self.isClaimable():
             self.claim()
+            if self.outcome()=="fail":
+                self.addCheckpoint(self.transmitters[0].target_info.station_code)
+                return
 
         if len(self.transmitters)>2:
             cst = 1
@@ -205,12 +244,19 @@ class Monrobot(Robot):
     def claim(self):
         self.setMotors(0,0)
         self.radio.claim_territory()
-        self.checkOutcome()
 
 
-    def checkOutcome(self):
-        pass
+    def outcome(self):
+        if self.transmitters[0].target_info.owned_by == self.zone:
+            return "succes"
+        if not self.transmitters[0].target_info.owned_by == self.zone:
+            if self.transmitters[0].target_info.owned_by == self.opzone:
+                self.claim()
+            else :
+                return "fail"
 
+    def addCheckpoint(self, obj):
+        self.wayPoints.insert(0, self.pointsToCheck[obj])
 
     def getIntersections(self, x0, y0, r0, x1, y1, r1):
         d=sqrt((x1-x0)**2 + (y1-y0)**2)
@@ -369,7 +415,6 @@ speed = 70
 delay = 0.1
 
 while True :
-    R.orientTo([-6.6,3])
     R.update()
     R.goToTarget()
     R.sleep(delay)
