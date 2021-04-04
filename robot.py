@@ -43,25 +43,48 @@ class Monrobot(Robot):
         'SZ':(1.1,1.7)
         }
     
-    wayPoints = [
-        (-3,-1.1, False),
-        (-1.5,-0.15, False),
-        (-4.6,-1.6, True),
-        (-4.5,0.1, False),
-        (-4.1,1.3, False),
-        (-2.65,1.2, False),
-        (-1.1 ,1.3, False),
-        (0 ,0.4, False),
-        (1.1,1.3, False),
-        (2.65,1.4, False),
-        (4.5,0.1, False),
-        (4.1,1.3, False),
-        (4.6,-1.6, False),
-        (1.5,-0.35, False),
+    wayPointsToPillars = {
+        "PN" : (-4, -2.00, False),
+        "EY" : (-1.95,-1.15, False),
+        "BE" : (0, 1.25, False),
+        "PO" : (1.95,-1.25, False),
+        "YL" : (4, -2, False),
+        "BG" : (-3.90, 0, False),
+        "OX" : (-6.4, 2.80, False),
+        "TS" : (-2.95, 2.55, False),
+        "VB" : (-2.15, 0.55, False),
+        "HV" : (3.9, 0, False),
+        "BN" : (6.4, 2.8, False),
+        "SW" : (2.95, 2.55, False),
+        "SZ" : (1.75, 0.55, False),
+        "FL" : (0, -2.6, False),
+        "YT" : (0, -1.85, False),
+        "HA" : (0, 0.4, False),
+        "PL" : (0, 2.6, False),
+        "TH" : (-6.25, -3, False),
+        "SF" : (6.25, -3, False),
+    }
+    wayPoints0 = ["OX", "TS", "VB","BG","PN", "EY", "FL", "PO", "YL" ]
+
+    wayPoints1 = [
         (3,-1.1, False),
+        (1.5,-0.35, False),
+        (4.5,-1.6, True), # 4.4 -1.5
+        (4.7,-1, False),
+        (4.5,0.1, False),
+
+        (4.1,1.3, False),
+        (2.65,1.2, False),
+        (1.1,1.3, False),
+        (0 ,0.4, False),
+        (-1.1,1.3, False),
+        (-2.65,1.2, False),
+        (-4.1,1.3, False),
+        (-4.5,0.1, False),
+        (-4.6,-1.6, False),
+        (-1.5,-0.35, False),
+        (-3,-1.1, True),
     ]
-
-
 
     def __init__(self):
         Robot.__init__(self)
@@ -70,10 +93,14 @@ class Monrobot(Robot):
         self.rightMotor = self.motors[0].m1
         if self.zone == 0 :
             self.x = -4.5
-            self.theta = self.toPiPi(3.926) #-pi/4
+            self.wayPoints = self.wayPoints0
+            #self.theta = self.toPiPi(3.926) #-pi/4
         else :
             self.x = 4.4
-            self.theta = self.toPiPi(-2.266) #-3*pi/4
+            self.wayPoints = self.wayPoints1
+            #self.theta = self.toPiPi(-2.266) #-3*pi/4
+        self.theta = self.toPiPi(pi/2 - self.compass.get_heading() )
+        logging.debug(f"theta initial : {self.theta}")
         self.y = -2
         self.actu = self.time()
         self.age = self.time()-self.actu
@@ -157,26 +184,33 @@ class Monrobot(Robot):
         self.age = self.time()-self.actu
 
 
-
-            
-        if sqrt((self.x-self.wayPoints[0][0])**2)+(self.y-self.wayPoints[0][1])**2<0.1 :
+        if sqrt((self.x-self.wayPointsToPillars.get(self.wayPoints[0])[0]**2)+(self.y-self.wayPointsToPillars.get(self.wayPoints[0])[1])**2<0.1) :
+            logging.debug("Cible atteinte : waypoint suivant") 
             self.wayPoints.pop(0)
-        self.wayPointBearing = self.toPiPi(self.theta - (atan2(-(self.wayPoints[0][1]-self.y),self.wayPoints[0][0]-self.x)))
-        self.reverse = self.wayPoints[0][2]
+        self.wayPointBearing = self.toPiPi(self.theta - (atan2(-(self.wayPointsToPillars.get(self.wayPoints[0])[1]-self.y),self.wayPointsToPillars.get(self.wayPoints[0])[0]-self.x)))
+        self.reverse = self.wayPointsToPillars.get(self.wayPoints[0])[2]
 
         logging.info(f" Info sur les cibles :")
-        logging.info(f" Way Point Targetted : {self.wayPoints[0]}")
+        logging.info(f" Way Point Targetted : { self.wayPointsToPillars.get(self.wayPoints[0])[0] }")
         logging.info(f"Way Point Bearing : {self.wayPointBearing}")
 
 
     def isClaimable(self):
-        if sqrt(1/self.transmitters[0].signal_strength)<0.5 and (not self.transmitters[0].target_info.owned_by == self.zone) and self.transmitters[0].target_info.locked == False :
-            return True
+        if not self.transmitters == [] :
+            if sqrt(1/self.transmitters[0].signal_strength)<0.5 and (not self.transmitters[0].target_info.owned_by == self.zone) :
+                return True
+            return False
         return False
 
     def claim(self):
         self.setMotors(0,0)
         self.radio.claim_territory()
+        self.checkOutcome()
+
+
+    def checkOutcome(self):
+        pass
+
 
     def getIntersections(self, x0, y0, r0, x1, y1, r1):
         d=sqrt((x1-x0)**2 + (y1-y0)**2)
@@ -240,29 +274,57 @@ class Monrobot(Robot):
         self.rightMotor.power = r
             
     def patinage(self):
+        # seuil d'origine : seuil = 0.05
+        seuil = 0.07
+        
         if self.timeSinceMouvement == 0:
             self.timeSinceMouvement = 1
             self.referencePositionX = self.x
             self.referencePositionY = self.y
+            logging.debug(f"Patinage : premier tour")
             return(False)
-
+        logging.debug(f"Patinage : refPos = ({self.referencePositionX},{self.referencePositionX}) currPos = ({self.x},{self.y})")
+        d = (self.referencePositionX - self.x)**2 + (self.referencePositionY - self.y)**2
+        d = sqrt(d)
+        logging.debug(f"Patinage : d = {d}")
         if self.timeSinceMouvement == 3:
-            self.timeSinceMouvement = 0
+            if d > seuil : self.timeSinceMouvement = 0
             return(True)
-
-        if 3>self.timeSinceMouvement >= 1 and self.referencePositionX-0.05<self.x<self.referencePositionX+0.05 and self.referencePositionY-0.05<self.y<self.referencePositionY+0.05:
+        
+        #if 3>self.timeSinceMouvement >= 1 and self.referencePositionX-seuil<self.x<self.referencePositionX+seuil and self.referencePositionY-seuil<self.y<self.referencePositionY+seuil:
+        if d < seuil:
             self.timeSinceMouvement = self.timeSinceMouvement+1
             self.sleep(0.1)
+            logging.debug(f"Patinage detecte : tour num {self.timeSinceMouvement-1}")
             return(False)
         else : 
             self.timeSinceMouvement = 0
+            logging.debug(f"Patinage : reset")
             return(False)    
+
+
+    def orientTo(self, wa):
+        logging.debug("Entree dans orientTo")
+        while -pi/9 < self.wayPointBearing > pi/9 :
+            self.wayPointBearing = self.toPiPi(self.theta - (atan2(-(wa[1]-self.y),wa[0]-self.x)))
+            if self.wayPointBearing > 0 :
+                self.setMotors(-(cos(self.wayPointBearing)-1)**2*50,(cos(self.wayPointBearing)-1)**2*50)
+                logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
+
+            if self.wayPointBearing < 0 :
+                self.setMotors((cos(self.wayPointBearing)-1)**2*50,-(cos(self.wayPointBearing)-1)**2*50)
+                logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
+            self.sleep(0.1)
+
 
     def goToTarget(self):
         logging.debug("Entree dans goToTarget")
+        # expo d'origine : 3
+        expo = 4
         if self.reverse : self.wayPointBearing = self.toPiPi(self.wayPointBearing + pi)
+        patine = self.patinage()
 
-        if self.tsAV or (self.patinage() and not self.reverse):
+        if self.tsAV or (patine and not self.reverse and not self.tsAR):
             logging.debug("Coince a l avant : je recule")
             if self.wayPointBearing > 0 :
                 logging.debug("Nez vers la droite")
@@ -272,39 +334,42 @@ class Monrobot(Robot):
                 logging.debug("Nez vers la gauche")
                 left=-100
                 right=-100*cos(self.wayPointBearing)
-        elif self.tsAR or (self.patinage() and self.reverse):
-            logging.debug("Coince a l'arriere : je recule")
+        elif self.tsAR or (patine and self.reverse):
+            logging.debug("Coince a l'arriere : j'avance")
             if self.wayPointBearing > 0 :
                 logging.debug("Nez vers la droite")
-                left=100*cos(self.wayPointBearing)
-                right = 100
+                left=-100*cos(self.wayPointBearing) # on fait le contraire de l'effet recherché
+                right = -100                        # car à la fin on inverse dans le cas reverse
+               
             else :
                 logging.debug("Nez vers la gauche")
-                left=100
-                right=100*cos(self.wayPointBearing)
+                left=-100                           # idem !
+                right=-100*cos(self.wayPointBearing)
+               
 
 
         elif self.wayPointBearing > 0 :
             logging.debug("Bifurque à droite")
             left = speed
-            right = speed*cos(self.wayPointBearing)**3
+            right = speed*cos(self.wayPointBearing)**expo
             
         elif self.wayPointBearing < 0 :
             logging.debug("Bifurque à gauche")            
-            left = speed*cos(self.wayPointBearing)**3
+            left = speed*cos(self.wayPointBearing)**expo
             right = speed
-        logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
+        
 
         if self.reverse :
             left,right = -right,-left
         self.setMotors(left,right)
-        
+        logging.debug(f"moteur gauche : {self.leftMotor.power} moteur droit : {self.rightMotor.power}")
        
 R = Monrobot()
 speed = 70
 delay = 0.1
 
 while True :
+    R.orientTo([-6.6,3])
     R.update()
     R.goToTarget()
     R.sleep(delay)
