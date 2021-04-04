@@ -29,48 +29,48 @@ class Monrobot(Robot):
     }
     # Rose
     pointsToCheck0 = {
-    #    'OX' : {''},
-        'TH' : {'PN'},
-    #    'PN' : {''},
-    #    'BG' : {''},
-        'TS' : {'OX'},
-        'EY' : {'PN'},
-        'VB' : {'OX'},
-        'FL' : {'EY'},
-        'YT' : {'HA'},
-        'HA' : {'BE'},
-        'BE' : {'VB'},
-        'PL' : {'VB'},
-        'PO' : {'FL'},
-        'SZ' : {'PO'},
-        'SW' : {'BN'},
-        'YL' : {'PO'},
-        'HV' : {'SZ'},
-        'SF' : {'YL'},
-        'BN' : {'SZ'}
+        'OX' : '',
+        'TH' : 'PN',
+        'PN' : '',
+        'BG' : '',
+        'TS' : 'OX',
+        'EY' : 'PN',
+        'VB' : 'OX',
+        'FL' : 'EY',
+        'YT' : 'HA',
+        'HA' : 'BE',
+        'BE' : 'VB',
+        'PL' : 'VB',
+        'PO' : 'FL',
+        'SZ' : 'PO',
+        'SW' : 'BN',
+        'YL' : 'PO',
+        'HV' : 'SZ',
+        'SF' : 'YL',
+        'BN' : 'SZ'
     }
 
     # Jaune
     pointsToCheck1 = {
-        'OX' : {'VB'},
-        'TH' : {'PN'},
-        'PN' : {'EY'},
-        'BG' : {'VB'},
-        'TS' : {'OX'},
-        'EY' : {'FL'},
-        'VB' : {'BE'},
-        'FL' : {'PO'},
-        'YT' : {'HA'},
-        'HA' : {'BE'},
-        'BE' : {'SZ'},
-        'PL' : {'SZ'},
-        'PO' : {'YL'},
-        'SZ' : {'BN'},
-        'SW' : {'BN'},
-    #    'YL' : {''},
-    #    'HV' : {''},
-        'SF' : {'YL'},
-    #    'BN' : {''}
+        'OX' : 'VB',
+        'TH' : 'PN',
+        'PN' : 'EY',
+        'BG' : 'VB',
+        'TS' : 'OX',
+        'EY' : 'FL',
+        'VB' : 'BE',
+        'FL' : 'PO',
+        'YT' : 'HA',
+        'HA' : 'BE',
+        'BE' : 'SZ',
+        'PL' : 'SZ',
+        'PO' : 'YL',
+        'SZ' : 'BN',
+        'SW' : 'BN',
+        'YL' : '',
+        'HV' : '',
+        'SF' : 'YL',
+        'BN' : ''
     }
 
     pillars = {
@@ -171,7 +171,8 @@ class Monrobot(Robot):
         if self.isClaimable():
             self.claim()
             if self.outcome()=="fail":
-                self.addCheckpoint(self.transmitters[0].target_info.station_code)
+                print(self.transmitters[0].target_info.station_code.name)
+                self.addCheckpoint(self.transmitters[0].target_info.station_code.name)
                 return
 
         if len(self.transmitters)>2:
@@ -222,7 +223,7 @@ class Monrobot(Robot):
             logging.debug("Pas d'actualisation des coordonnees")            
         self.age = self.time()-self.actu
 
-
+        print(self.wayPoints[0])
         if sqrt((self.x-self.wayPointsToPillars.get(self.wayPoints[0])[0]**2)+(self.y-self.wayPointsToPillars.get(self.wayPoints[0])[1])**2<0.1) :
             logging.debug("Cible atteinte : waypoint suivant") 
             self.wayPoints.pop(0)
