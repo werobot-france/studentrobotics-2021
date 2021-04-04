@@ -9,6 +9,7 @@ logging.basicConfig(level=logging.DEBUG)
 class Monrobot(Robot):
 
     timeSinceMouvement = 0
+    reClaim=0
     x = 2
     y = -4.5
     distanceToKeep = 0.10
@@ -170,10 +171,11 @@ class Monrobot(Robot):
 
         if self.isClaimable():
             self.claim()
+            if self.reClaim==1: 
+                transmitters = self.radio.sweep()
+                self.transmitters = sorted(transmitters,key=lambda tx: tx.signal_strength, reverse = True)
             if self.outcome()=="fail":
-                print(self.transmitters[0].target_info.station_code.name)
                 self.addCheckpoint(self.transmitters[0].target_info.station_code.name)
-                return
 
         if len(self.transmitters)>2:
             cst = 1
@@ -223,12 +225,14 @@ class Monrobot(Robot):
             logging.debug("Pas d'actualisation des coordonnees")            
         self.age = self.time()-self.actu
 
-        print(self.wayPoints[0])
-        if sqrt((self.x-self.wayPointsToPillars.get(self.wayPoints[0])[0]**2)+(self.y-self.wayPointsToPillars.get(self.wayPoints[0])[1])**2<0.1) :
+
+
+        print("wp : ", self.wayPoints)
+        if sqrt((self.x-(self.wayPointsToPillars.get(self.wayPoints[0]))[0])**2+(self.y-(self.wayPointsToPillars.get(self.wayPoints[0]))[1])**2)<0.1 :
             logging.debug("Cible atteinte : waypoint suivant") 
             self.wayPoints.pop(0)
-        self.wayPointBearing = self.toPiPi(self.theta - (atan2(-(self.wayPointsToPillars.get(self.wayPoints[0])[1]-self.y),self.wayPointsToPillars.get(self.wayPoints[0])[0]-self.x)))
-        self.reverse = self.wayPointsToPillars.get(self.wayPoints[0])[2]
+        self.wayPointBearing = self.toPiPi(self.theta - (atan2(-((self.wayPointsToPillars.get(self.wayPoints[0]))[1]-self.y),(self.wayPointsToPillars.get(self.wayPoints[0]))[0]-self.x)))
+        self.reverse = (self.wayPointsToPillars.get(self.wayPoints[0]))[2]
 
         logging.info(f" Info sur les cibles :")
         logging.info(f" Way Point Targetted : { self.wayPointsToPillars.get(self.wayPoints[0])[0] }")
@@ -245,6 +249,7 @@ class Monrobot(Robot):
     def claim(self):
         self.setMotors(0,0)
         self.radio.claim_territory()
+        self.reClaim=1
 
 
     def outcome(self):
@@ -414,7 +419,6 @@ class Monrobot(Robot):
 R = Monrobot()
 speed = 70
 delay = 0.1
-
 while True :
     R.update()
     R.goToTarget()
