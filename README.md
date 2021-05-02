@@ -4,7 +4,7 @@ Here you can find the python code used by our team to compete at the 2021 editio
 
 <!-- TODO: add link to the blog post --->
 
-We lost at fourth finals [here](https://youtu.be/gxJM6ernMqo) you can find the video of the full knockouts and finals. We are on the 6th place! There was 22 teams in total.
+We lost at fourth finals [here](https://youtu.be/gxJM6ernMqo) you can find the video of the full knockouts and finals. We are on the 6th place! There were 22 teams in total.
 
 ![](/student_robotics_logo_r.png)
 
